@@ -9,19 +9,7 @@
 
 static struct audio_buffer_pool *producer_pool;
 
-#define SINE_WAVE_TABLE_LEN 2048
-static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
-uint32_t step0 = 0x200000;
-uint32_t step1 = 0x200000;
-uint32_t pos0 = 0;
-uint32_t pos1 = 0;
-const uint32_t pos_max = 0x10000 * SINE_WAVE_TABLE_LEN;
-
 void i2s_audio_init() {
-    for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++) {
-        sine_wave_table[i] = 32767 * cosf(i * 2 * (float) (M_PI / SINE_WAVE_TABLE_LEN));
-    }
-
     gpio_init(PICO_AUDIO_I2S_AMP_ENABLE);
     gpio_set_function(PICO_AUDIO_I2S_AMP_ENABLE, GPIO_FUNC_SIO);
     gpio_set_dir(PICO_AUDIO_I2S_AMP_ENABLE, GPIO_OUT);
@@ -86,29 +74,10 @@ void i2s_audio_start() {
     //multicore_launch_core1(core1_worker);
 }
 
-void i2s_audio_give_buffer(void *src, size_t len, uint8_t bit_depth) {
-    (void)src;
-    (void)len;
-    //uint vol = 20;
-
-    //gpio_put(LED_R, 0);
+void i2s_audio_give_buffer(void *src, size_t len, uint8_t bit_depth, uint8_t volume) {
     struct audio_buffer *audio_buffer = take_audio_buffer(producer_pool, false);
-    if(audio_buffer) {
-        gpio_put(LED_G, 0);
-        
-        //int32_t *samples = (int32_t *) audio_buffer->buffer->bytes;
-        /*for (uint i = 0; i < audio_buffer->max_sample_count; i++) {
-            int32_t value0 = (vol * sine_wave_table[pos0 >> 16u]) << 8u;
-            int32_t value1 = (vol * sine_wave_table[pos1 >> 16u]) << 8u;
-            // use 32bit full scale
-            samples[i*2+0] = value0 + (value0 >> 16u);  // L
-            samples[i*2+1] = value1 + (value1 >> 16u);  // R
-            pos0 += step0;
-            pos1 += step1;
-            if (pos0 >= pos_max) pos0 -= pos_max;
-            if (pos1 >= pos_max) pos1 -= pos_max;
-        }*/
 
+    if(audio_buffer) {
         int16_t *out = (int16_t *) audio_buffer->buffer->bytes;
 
         if(bit_depth == 16) {
@@ -119,8 +88,8 @@ void i2s_audio_give_buffer(void *src, size_t len, uint8_t bit_depth) {
             if(in_samples < samples) samples = in_samples;
 
             for (uint i = 0u; i < samples * 2; i+=2) {
-                out[i+0] = in[i+0];
-                out[i+1] = in[i+1];
+                out[i+0] = ((uint32_t)in[i+0] * volume) / 256;
+                out[i+1] = ((uint32_t)in[i+1] * volume) / 256;
             }
 
             audio_buffer->sample_count = samples;
@@ -133,15 +102,13 @@ void i2s_audio_give_buffer(void *src, size_t len, uint8_t bit_depth) {
             if(in_samples < samples) samples = in_samples;
 
             for (uint i = 0u; i < samples * 2; i+=2) {
-                out[i+0] = in[i+0] / 65536;
-                out[i+1] = in[i+1] / 65536;
+                out[i+0] = ((in[i+0] / 65536) * volume) / 256;
+                out[i+1] = ((in[i+1] / 65536) * volume) / 256;
             }
 
             audio_buffer->sample_count = samples;
         }
 
         give_audio_buffer(producer_pool, audio_buffer);
-        //gpio_put(LED_G, 1);
     }
-    //gpio_put(LED_R, 1);
 }

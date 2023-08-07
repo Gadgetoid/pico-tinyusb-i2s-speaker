@@ -31,6 +31,7 @@
 #include "usb_descriptors.h"
 #include "i2s_audio.h"
 #include "board_config.h"
+#include "board.h"
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTOTYPES
@@ -61,23 +62,9 @@ enum
   BLINK_SUSPENDED = 2500,
 };
 
-enum
-{
-  VOLUME_CTRL_0_DB = 0,
-  VOLUME_CTRL_10_DB = 2560,
-  VOLUME_CTRL_20_DB = 5120,
-  VOLUME_CTRL_30_DB = 7680,
-  VOLUME_CTRL_40_DB = 10240,
-  VOLUME_CTRL_50_DB = 12800,
-  VOLUME_CTRL_60_DB = 15360,
-  VOLUME_CTRL_70_DB = 17920,
-  VOLUME_CTRL_80_DB = 20480,
-  VOLUME_CTRL_90_DB = 23040,
-  VOLUME_CTRL_100_DB = 25600,
-  VOLUME_CTRL_SILENCE = 0x8000,
-};
-
 static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
+
+uint8_t system_volume = 255;
 
 // Audio controls
 // Current states
@@ -101,13 +88,8 @@ void usb_serial_init(void);
 /*------------- MAIN -------------*/
 int main(void)
 {
-  // DCDC PSM control
-  // 0: PFM mode (best efficiency)
-  // 1: PWM mode (improved ripple)
-  gpio_init(PIN_DCDC_PSM_CTRL);
-  gpio_set_dir(PIN_DCDC_PSM_CTRL, GPIO_OUT);
-  gpio_put(PIN_DCDC_PSM_CTRL, 1); // PWM mode for less Audio noise
 
+/*
   gpio_init(LED_R);
   gpio_set_function(LED_R, GPIO_FUNC_SIO);
   gpio_set_dir(LED_R, GPIO_OUT);
@@ -122,6 +104,9 @@ int main(void)
   gpio_set_function(LED_B, GPIO_FUNC_SIO);
   gpio_set_dir(LED_B, GPIO_OUT);
   gpio_put(LED_B, 1);
+*/
+
+  system_init();
 
   board_init();
   // Fetch the Pico serial (actually the flash chip ID) into `usb_serial`
@@ -139,7 +124,7 @@ int main(void)
   {
     tud_task(); // TinyUSB device task
     audio_task();
-    led_blinking_task();
+    //led_blinking_task();
     //i2s_audio_give_buffer(NULL, 0);
   }
 }
@@ -414,17 +399,41 @@ bool tud_audio_tx_done_pre_load_cb(uint8_t rhport, uint8_t itf, uint8_t ep_in, u
 
 void audio_task(void)
 {
-  static bool led_b_state = false;
+  static uint32_t start_ms = 0;
+  uint32_t volume_interval_ms = 10;
+
+  if (board_millis() - start_ms >= volume_interval_ms)
+  {
+    int32_t volume_delta = get_volume_delta();
+    if(volume_delta > 0) {
+      system_led(0, 255, 0);
+    } else if (volume_delta < 0) {
+      system_led(0, 0, 255);
+    } else {
+      system_led(0, 0, 0);
+    }
+
+    if(volume_delta + system_volume > 255) {
+        system_volume = 255;
+    } else if (volume_delta + system_volume < 0) {
+        system_volume = 0;
+    } else {
+        system_volume += volume_delta;
+    }
+
+    start_ms += volume_interval_ms;
+  }
+
   // When new data arrived, copy data from speaker buffer, to microphone buffer
   // and send it over
   // Only support speaker & headphone both have the same resolution
   // If one is 16bit another is 24bit be care of LOUD noise !
   if (spk_data_size)
   {
-    led_b_state = !led_b_state;
-    gpio_put(LED_B, led_b_state);
+    //led_b_state = !led_b_state;
+    //gpio_put(LED_B, led_b_state);
   
-    i2s_audio_give_buffer(spk_buf, (size_t)spk_data_size, current_resolution);
+    i2s_audio_give_buffer(spk_buf, (size_t)spk_data_size, current_resolution, system_volume);
     spk_data_size = 0;
   }
 }
@@ -442,6 +451,7 @@ void led_blinking_task(void)
   start_ms += blink_interval_ms;
 
   //board_led_write(led_state);
-  gpio_put(LED_G, led_state);
+  //gpio_put(LED_G, led_state);
+  system_led(255 * led_state, 0, 0);
   led_state = 1 - led_state;
 }
