@@ -86,6 +86,7 @@ enum
 static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 
 int system_volume = 255;
+int volume_speed = 10;
 
 // Audio controls
 // Current states
@@ -433,6 +434,8 @@ void audio_task(void)
     } else {
       system_led(0, 0, 0);
     }
+
+    volume_delta *= volume_speed;
 
     if(volume_delta + system_volume > 255) {
         system_volume = 255;
