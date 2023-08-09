@@ -32,6 +32,16 @@ target_include_directories(${NAME} PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
+add_compile_definitions(${NAME}
+        NDEBUG
+        PICO_AUDIO_I2S_DMA_IRQ=0
+        PICO_AUDIO_I2S_PIO=0
+        PICO_AUDIO_I2S_MONO_OUTPUT=0
+        PICO_AUDIO_I2S_MONO_INPUT=0
+        PICO_AUDIO_I2S_DATA_PIN=14
+        PICO_AUDIO_I2S_CLOCK_PIN_BASE=15
+)
+
 target_link_libraries(${NAME} PUBLIC
     pico_stdlib pico_audio_i2s pico_unique_id pico_multicore rgbled tinyusb_device tinyusb_board
 )
