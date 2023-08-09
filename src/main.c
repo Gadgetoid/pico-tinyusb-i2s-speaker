@@ -33,6 +33,27 @@
 #include "board_config.h"
 #include "board.h"
 
+// Approximate exponential volume ramp - (n / 64) ^ 4
+// Tested with pure square for perceptual loudness.
+const uint8_t volume_ramp[] = {
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2,
+  2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4,
+  5, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9,
+  9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15,
+  16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 22, 22, 23, 24, 24,
+  25, 26, 27, 27, 28, 29, 30, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+  39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 52, 53, 54, 55,
+  57, 58, 59, 61, 62, 63, 65, 66, 68, 69, 71, 72, 74, 76, 77, 79,
+  81, 82, 84, 86, 87, 89, 91, 93, 95, 97, 99, 101, 103, 105, 107, 109,
+  111, 113, 115, 118, 120, 122, 125, 127, 129, 132, 134, 137, 139, 142, 144, 147,
+  150, 152, 155, 158, 161, 163, 166, 169, 172, 175, 178, 181, 184, 188, 191, 194,
+  197, 201, 204, 207, 211, 214, 218, 221, 225, 229, 232, 236, 240, 244, 248, 255
+};
+
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTOTYPES
 //--------------------------------------------------------------------+
@@ -64,7 +85,7 @@ enum
 
 static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 
-uint8_t system_volume = 255;
+int system_volume = 255;
 
 // Audio controls
 // Current states
@@ -433,7 +454,7 @@ void audio_task(void)
     //led_b_state = !led_b_state;
     //gpio_put(LED_B, led_b_state);
   
-    i2s_audio_give_buffer(spk_buf, (size_t)spk_data_size, current_resolution, system_volume);
+    i2s_audio_give_buffer(spk_buf, (size_t)spk_data_size, current_resolution, volume_ramp[(uint8_t)system_volume]);
     spk_data_size = 0;
   }
 }
