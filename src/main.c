@@ -59,13 +59,8 @@ const uint8_t volume_ramp[] = {
 //--------------------------------------------------------------------+
 
 // List of supported sample rates
-#if defined(__RX__)
-  const uint32_t sample_rates[] = {44100, 48000};
-#else
-  const uint32_t sample_rates[] = {44100, 48000, 88200, 96000};
-#endif
-
-uint32_t current_sample_rate  = 44100;
+const uint32_t sample_rates[] = {48000, 88200, 96000};
+uint32_t current_sample_rate  = 48000;
 
 #define N_SAMPLE_RATES  TU_ARRAY_SIZE(sample_rates)
 
@@ -304,6 +299,12 @@ static bool tud_audio_feature_unit_set_request(uint8_t rhport, audio_control_req
 
     TU_LOG1("Set channel %d Mute: %d\r\n", request->bChannelNumber, mute[request->bChannelNumber]);
 
+    if(mute[request->bChannelNumber]) {
+      system_led(255, 0, 0);
+    } else {
+      system_led(0, 0, 0);
+    }
+  
     return true;
   }
   else if (request->bControlSelector == AUDIO_FU_CTRL_VOLUME)
@@ -311,6 +312,8 @@ static bool tud_audio_feature_unit_set_request(uint8_t rhport, audio_control_req
     TU_VERIFY(request->wLength == sizeof(audio_control_cur_2_t));
 
     volume[request->bChannelNumber] = ((audio_control_cur_2_t const *)buf)->bCur;
+
+    system_led(0, 0, volume[request->bChannelNumber] / 100);
 
     TU_LOG1("Set channel %d volume: %d dB\r\n", request->bChannelNumber, volume[request->bChannelNumber] / 256);
 
@@ -427,13 +430,13 @@ void audio_task(void)
   if (board_millis() - start_ms >= volume_interval_ms)
   {
     int32_t volume_delta = get_volume_delta();
-    if(volume_delta > 0) {
+    /*if(volume_delta > 0) {
       system_led(0, 255, 0);
     } else if (volume_delta < 0) {
       system_led(0, 0, 255);
     } else {
       system_led(0, 0, 0);
-    }
+    }*/
 
     volume_delta *= volume_speed;
 
@@ -443,6 +446,10 @@ void audio_task(void)
         system_volume = 0;
     } else {
         system_volume += volume_delta;
+    }
+
+    if(volume_delta != 0) {
+      system_led(0, system_volume, 0);
     }
 
     start_ms += volume_interval_ms;
@@ -456,8 +463,23 @@ void audio_task(void)
   {
     //led_b_state = !led_b_state;
     //gpio_put(LED_B, led_b_state);
+
+    // "Hardware" volume is 0 - 100 in steps of 256, with a maximum value of 25600
   
-    i2s_audio_give_buffer(spk_buf, (size_t)spk_data_size, current_resolution, volume_ramp[(uint8_t)system_volume]);
+    //unsigned int current_volume = (unsigned int)volume[0] * volume_ramp[(uint8_t)system_volume] / 25600;
+
+    /*int current_volume = volume[0] / 100;
+    if (current_volume > 256) current_volume = 256;
+    if (current_volume < 0) current_volume = 0;
+    current_volume = volume_ramp[current_volume];*/
+
+    int current_volume = volume_ramp[system_volume];
+
+    if (mute[0]) {
+      current_volume = 0;
+    }
+
+    i2s_audio_give_buffer(spk_buf, (size_t)spk_data_size, current_resolution, current_volume);
     spk_data_size = 0;
   }
 }

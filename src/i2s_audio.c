@@ -4,6 +4,7 @@
 #include "board_config.h"
 #include "pico/stdlib.h"
 #include "hardware/dma.h"
+#include "board.h"
 #include "tusb.h"
 #include <math.h>
 
