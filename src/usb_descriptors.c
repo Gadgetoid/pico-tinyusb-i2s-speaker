@@ -140,7 +140,7 @@ char const* string_desc_arr [] =
 {
   (const char[]) { 0x09, 0x04 },  // 0: is supported language is English (0x0409)
   "Pimoroni",                     // 1: Manufacturer
-  "Picade",                       // 2: Product
+  "Picade USB Audio",             // 2: Product
   usb_serial,                     // 3: Serials, should use chip ID
   "Speakers",                     // 4: Audio Interface
 };
