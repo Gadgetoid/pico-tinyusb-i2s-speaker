@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/param.h> // MIN and MAX
 
 #include "bsp/board.h"
 #include "tusb.h"
@@ -264,7 +265,7 @@ static bool tud_audio_feature_unit_get_request(uint8_t rhport, audio_control_req
     {
       audio_control_range_2_n_t(1) range_vol = {
         .wNumSubRanges = tu_htole16(1),
-        .subrange[0] = { .bMin = tu_htole16(-VOLUME_CTRL_50_DB), tu_htole16(VOLUME_CTRL_0_DB), tu_htole16(256) }
+        .subrange[0] = { .bMin = tu_htole16(VOLUME_CTRL_0_DB), tu_htole16(VOLUME_CTRL_100_DB), tu_htole16(256) }
       };
       TU_LOG1("Get channel %u volume range (%d, %d, %u) dB\r\n", request->bChannelNumber,
               range_vol.subrange[0].bMin / 256, range_vol.subrange[0].bMax / 256, range_vol.subrange[0].bRes / 256);
@@ -311,9 +312,11 @@ static bool tud_audio_feature_unit_set_request(uint8_t rhport, audio_control_req
   {
     TU_VERIFY(request->wLength == sizeof(audio_control_cur_2_t));
 
-    volume[request->bChannelNumber] = ((audio_control_cur_2_t const *)buf)->bCur;
+    volume[request->bChannelNumber] = tu_le16toh(((audio_control_cur_2_t const *)buf)->bCur);
 
-    system_led(0, 0, volume[request->bChannelNumber] / 100);
+    system_led(0, 0, MIN(255, volume[request->bChannelNumber] / 100));
+
+    system_volume = MIN(255u, volume[request->bChannelNumber] / 100);
 
     TU_LOG1("Set channel %d volume: %d dB\r\n", request->bChannelNumber, volume[request->bChannelNumber] / 256);
 
@@ -450,6 +453,9 @@ void audio_task(void)
 
     if(volume_delta != 0) {
       system_led(0, system_volume, 0);
+
+      volume[0] = system_volume * 100;
+      volume[1] = system_volume * 100;
     }
 
     start_ms += volume_interval_ms;
