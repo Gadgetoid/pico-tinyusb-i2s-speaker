@@ -151,6 +151,12 @@ int main(void)
 // Device callbacks
 //--------------------------------------------------------------------+
 
+bool tud_audio_int_ctr_done_cb(uint8_t rhport, uint16_t n_bytes_copied)
+{
+  system_led(128, 128, 0);
+  return true;
+}
+
 // Invoked when device is mounted
 void tud_mount_cb(void)
 {
@@ -425,6 +431,54 @@ bool tud_audio_tx_done_pre_load_cb(uint8_t rhport, uint8_t itf, uint8_t ep_in, u
 // AUDIO Task
 //--------------------------------------------------------------------+
 
+#define STATUS_INTERRUPT_INFO_ORIGIN_INTERFACE 0x00
+#define STATUS_INTERRUPT_CONTROL_MASTER 0x00
+
+// Cribbed from https://github.com/hathach/tinyusb/pull/1702
+// UAC2 §6.1 "interrupt data message"
+typedef struct TU_ATTR_PACKED
+{
+  uint8_t bInfo;
+  uint8_t bAttribute;
+  union TU_ATTR_PACKED
+  {
+    uint16_t wValue;
+    struct TU_ATTR_PACKED
+    {
+      uint8_t wValue_cn_or_mcn;
+      uint8_t wValue_cs;
+    };
+  };
+  union TU_ATTR_PACKED
+  {
+    uint16_t wIndex;
+    struct TU_ATTR_PACKED
+    {
+      uint8_t wIndex_ep_or_int;
+      uint8_t wIndex_entity_id;
+    };
+  };
+} audio_status_update_t;
+
+static const audio_status_update_t status_message_queue[2] = {
+	{
+		.bInfo = STATUS_INTERRUPT_INFO_ORIGIN_INTERFACE,
+		.bAttribute = AUDIO_CS_REQ_CUR,
+		.wValue_cn_or_mcn = STATUS_INTERRUPT_CONTROL_MASTER,
+		.wValue_cs = AUDIO_FU_CTRL_VOLUME,
+		.wIndex_ep_or_int = ITF_NUM_AUDIO_CONTROL,
+		.wIndex_entity_id = UAC2_ENTITY_SPK_INPUT_TERMINAL,
+	},
+	{
+		.bInfo = STATUS_INTERRUPT_INFO_ORIGIN_INTERFACE,
+		.bAttribute = AUDIO_CS_REQ_CUR,
+		.wValue_cn_or_mcn = STATUS_INTERRUPT_CONTROL_MASTER,
+		.wValue_cs = AUDIO_FU_CTRL_MUTE,
+		.wIndex_ep_or_int = ITF_NUM_AUDIO_CONTROL,
+		.wIndex_entity_id = UAC2_ENTITY_SPK_INPUT_TERMINAL,
+	},
+};
+
 void audio_task(void)
 {
   static uint32_t start_ms = 0;
@@ -456,6 +510,9 @@ void audio_task(void)
 
       volume[0] = system_volume * 100;
       volume[1] = system_volume * 100;
+
+      const uint8_t *buf = (const uint8_t *)&status_message_queue[0];
+      tud_audio_int_ctr_n_write(0, buf, 6);
     }
 
     start_ms += volume_interval_ms;

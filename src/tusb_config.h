@@ -93,6 +93,8 @@ extern "C" {
 #define CFG_TUD_ENDPOINT0_SIZE    64
 #endif
 
+#define CFG_TUD_AUDIO_INT_CTR_EPSIZE_IN 6
+
 //------------- CLASS -------------//
 #define CFG_TUD_CDC               0
 #define CFG_TUD_MSC               0

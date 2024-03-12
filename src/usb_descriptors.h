@@ -42,7 +42,17 @@ enum
   ITF_NUM_TOTAL
 };
 
+#define TUD_AUDIO_DESC_AC_INT_LEN 7 
+#define TUD_AUDIO_DESC_AC_INT(ep) \
+  TUD_AUDIO_DESC_AC_INT_LEN /* Bytes */, \
+  TUSB_DESC_ENDPOINT, \
+	ep /* Endpoint */, \
+	TUSB_XFER_INTERRUPT /* Interrupt type */, \
+	U16_TO_U8S_LE(6) /* Buffer size as per standard */, \
+	10
+
 #define TUD_AUDIO_HEADSET_STEREO_DESC_LEN (TUD_AUDIO_DESC_IAD_LEN\
+    + TUD_AUDIO_DESC_AC_INT_LEN\
     + TUD_AUDIO_DESC_STD_AC_LEN\
     + TUD_AUDIO_DESC_CS_AC_LEN\
     + TUD_AUDIO_DESC_CLK_SRC_LEN\
@@ -81,6 +91,7 @@ enum
     /* Output Terminal Descriptor(4.7.2.5) */\
     TUD_AUDIO_DESC_OUTPUT_TERM(/*_termid*/ UAC2_ENTITY_SPK_OUTPUT_TERMINAL, /*_termtype*/ AUDIO_TERM_TYPE_OUT_GENERIC_SPEAKER, /*_assocTerm*/ 0x00, /*_srcid*/ UAC2_ENTITY_SPK_FEATURE_UNIT, /*_clkid*/ UAC2_ENTITY_CLOCK, /*_ctrl*/ 0x0000, /*_stridx*/ 0x00),\
     /* Standard AS Interface Descriptor(4.9.1) */\
+    TUD_AUDIO_DESC_AC_INT(_epin),\
     /* Interface 1, Alternate 0 - default alternate setting with 0 bandwidth */\
     TUD_AUDIO_DESC_STD_AS_INT(/*_itfnum*/ (uint8_t)(ITF_NUM_AUDIO_STREAMING_SPK), /*_altset*/ 0x00, /*_nEPs*/ 0x00, /*_stridx*/ 0x05),\
     /* Standard AS Interface Descriptor(4.9.1) */\
