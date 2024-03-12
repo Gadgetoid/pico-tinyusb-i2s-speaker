@@ -89,8 +89,8 @@ void i2s_audio_give_buffer(void *src, size_t len, uint8_t bit_depth, uint8_t vol
             if(in_samples < samples) samples = in_samples;
 
             for (uint i = 0u; i < samples * 2; i+=2) {
-                out[i+0] = ((uint32_t)in[i+0] * volume) / 256;
-                out[i+1] = ((uint32_t)in[i+1] * volume) / 256;
+                out[i+0] = ((uint32_t)in[i+1] * volume) / 256;
+                out[i+1] = ((uint32_t)in[i+0] * volume) / 256;
             }
 
             audio_buffer->sample_count = samples;
@@ -103,8 +103,8 @@ void i2s_audio_give_buffer(void *src, size_t len, uint8_t bit_depth, uint8_t vol
             if(in_samples < samples) samples = in_samples;
 
             for (uint i = 0u; i < samples * 2; i+=2) {
-                out[i+0] = ((in[i+0] / 65536) * volume) / 256;
-                out[i+1] = ((in[i+1] / 65536) * volume) / 256;
+                out[i+0] = ((in[i+1] / 65536) * volume) / 256;
+                out[i+1] = ((in[i+0] / 65536) * volume) / 256;
             }
 
             audio_buffer->sample_count = samples;
