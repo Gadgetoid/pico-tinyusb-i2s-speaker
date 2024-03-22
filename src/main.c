@@ -433,6 +433,14 @@ void audio_task(void)
   if (board_millis() - start_ms >= volume_interval_ms)
   {
     int32_t volume_delta = get_volume_delta();
+
+    // Long press triggers reset to bootloader
+    handle_mute_button_held();
+
+    if(get_mute_button_pressed()) {
+      mute[0] = !mute[0];
+      mute[1] = !mute[1];
+    }
     /*if(volume_delta > 0) {
       system_led(0, 255, 0);
     } else if (volume_delta < 0) {

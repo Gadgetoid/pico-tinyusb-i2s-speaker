@@ -19,6 +19,7 @@ pico_sdk_init()
 # Include Pimoroni libraries
 include(drivers/rgbled/rgbled)
 include(drivers/encoder/encoder)
+include(drivers/button/button)
 
 # Add your source files
 add_executable(${NAME})
@@ -42,10 +43,11 @@ add_compile_definitions(${NAME}
         PICO_AUDIO_I2S_MONO_INPUT=0
         PICO_AUDIO_I2S_DATA_PIN=14
         PICO_AUDIO_I2S_CLOCK_PIN_BASE=15
+        DEBUG_BOOTLOADER_SHORTCUT=1
 )
 
 target_link_libraries(${NAME} PUBLIC
-    pico_stdlib pico_audio_i2s pico_unique_id pico_multicore rgbled encoder tinyusb_device tinyusb_board
+    pico_stdlib pico_audio_i2s pico_unique_id pico_multicore rgbled encoder button tinyusb_device tinyusb_board
 )
 
 # create map/bin/hex file etc.
